@@ -9,6 +9,8 @@ import (
 	"apiusersafe/src/auth/infrastructure"
 	"apiusersafe/src/comprador/application"
 	"apiusersafe/src/comprador/domain"
+
+	"github.com/gorilla/mux"
 )
 
 type CompradorHandler struct {
@@ -70,11 +72,21 @@ func (h *CompradorHandler) ListCompradores(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CompradorHandler) UpdateComprador(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "ID inválido", http.StatusBadRequest)
+		return
+	}
+
 	var comprador domain.Comprador
 	if err := json.NewDecoder(r.Body).Decode(&comprador); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	comprador.ID = id
 
 	if err := h.UpdateService.Execute(&comprador); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -85,7 +97,13 @@ func (h *CompradorHandler) UpdateComprador(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CompradorHandler) DeleteComprador(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
+	vars := mux.Vars(r)
+	idStr, exists := vars["id"]
+
+	if !exists {
+		idStr = r.URL.Query().Get("id")
+	}
+
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "ID inválido", http.StatusBadRequest)
@@ -99,3 +117,4 @@ func (h *CompradorHandler) DeleteComprador(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 }
+

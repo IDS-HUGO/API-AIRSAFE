@@ -71,45 +71,26 @@ func main() {
 		userRepo,
 	)
 
-	// Crear el enrutador HTTP
 	r := mux.NewRouter()
 
-	// Middleware para CORS y logging
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	// Middleware de CORS
+	r.Use(corsMiddleware)
+	r.Use(loggingMiddleware)
+	
+	// Tus rutas
+	
 
-			if r.Method == "OPTIONS" {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	})
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.URL)
-			next.ServeHTTP(w, r)
-		})
-	})
-
-	// Auth routes
 	r.HandleFunc("/auth/login", authHandlerInstance.Login).Methods("POST", "OPTIONS")
 
-	// Admin routes
 	r.HandleFunc("/admin", adminHandlerInstance.ListAdmins).Methods("GET")
 	r.HandleFunc("/admin/create", adminHandlerInstance.CreateAdmin).Methods("POST")
-	r.HandleFunc("/admin/update", adminHandlerInstance.UpdateAdmin).Methods("PUT")
-	r.HandleFunc("/admin/delete", adminHandlerInstance.DeleteAdmin).Methods("DELETE")
+	r.HandleFunc("/admin/{id}", adminHandlerInstance.UpdateAdmin).Methods("PUT")
+	r.HandleFunc("/admin/{id}", adminHandlerInstance.DeleteAdmin).Methods("DELETE")
 
-	// Comprador routes
 	r.HandleFunc("/comprador", compradorHandlerInstance.ListCompradores).Methods("GET")
-	r.HandleFunc("/comprador/create", compradorHandlerInstance.CreateComprador).Methods("POST")
-	r.HandleFunc("/comprador/update", compradorHandlerInstance.UpdateComprador).Methods("PUT")
-	r.HandleFunc("/comprador/delete", compradorHandlerInstance.DeleteComprador).Methods("DELETE")
+	r.HandleFunc("/comprador/create", compradorHandlerInstance.CreateComprador).Methods("POST", "OPTIONS")
+	r.HandleFunc("/comprador/{id}", compradorHandlerInstance.UpdateComprador).Methods("PUT")
+	r.HandleFunc("/comprador/{id}", compradorHandlerInstance.DeleteComprador).Methods("DELETE")
 
 	serverAddr := fmt.Sprintf(":%s", cfg.ServerPort)
 	log.Printf("Servidor corriendo en http://localhost%s\n", serverAddr)
@@ -120,4 +101,29 @@ func main() {
 	}
 
 	log.Fatal(server.ListenAndServe())
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Verifica si la respuesta tiene las cabeceras necesarias
+        w.Header().Set("Access-Control-Allow-Origin", "*")  // Permitir todos los orígenes
+        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+        w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+        if r.Method == "OPTIONS" {
+            w.WriteHeader(http.StatusOK)
+            return
+        }
+
+        next.ServeHTTP(w, r)
+    })
+}
+
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("📡 %s %s %s", r.RemoteAddr, r.Method, r.URL)
+		next.ServeHTTP(w, r)
+	})
 }

@@ -8,3 +8,4 @@ func RegisterCompradorRoutes(r *mux.Router, handler *CompradorHandler) {
 	r.HandleFunc("/comprador/{id}", handler.UpdateComprador).Methods("PUT")
 	r.HandleFunc("/comprador/{id}", handler.DeleteComprador).Methods("DELETE")
 }
+

@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 type AdminHandler struct {
@@ -69,32 +71,44 @@ func (h *AdminHandler) ListAdmins(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AdminHandler) UpdateAdmin(w http.ResponseWriter, r *http.Request) {
-	var admin domain.Admin
-	if err := json.NewDecoder(r.Body).Decode(&admin); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 
-	if err := h.UpdateService.Execute(&admin); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+    idStr := mux.Vars(r)["id"]
+    id, err := strconv.Atoi(idStr)
+    if err != nil {
+        http.Error(w, "ID inválido", http.StatusBadRequest)
+        return
+    }
 
-	w.WriteHeader(http.StatusOK)
+    var admin domain.Admin
+    if err := json.NewDecoder(r.Body).Decode(&admin); err != nil {
+        http.Error(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    admin.ID = id
+
+    if err := h.UpdateService.Execute(&admin); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
 }
 
+
 func (h *AdminHandler) DeleteAdmin(w http.ResponseWriter, r *http.Request) {
-	idStr := r.URL.Query().Get("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, "ID inválido", http.StatusBadRequest)
-		return
-	}
 
-	if err := h.DeleteService.Execute(id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+    idStr := mux.Vars(r)["id"]
+    id, err := strconv.Atoi(idStr)
+    if err != nil {
+        http.Error(w, "ID inválido", http.StatusBadRequest)
+        return
+    }
 
-	w.WriteHeader(http.StatusOK)
+    if err := h.DeleteService.Execute(id); err != nil {
+        http.Error(w, err.Error(), http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
 }
